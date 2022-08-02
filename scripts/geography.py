@@ -39,51 +39,48 @@ for row in geography:
     regionlng = row[12]
     subregionlat = row[13]
     subregionlng = row[14]
-    if region:
-        if region not in regions:
-            stix_region = Location(
-                id='location--' + id_region,
-                name=region,
-                region=region,
-                latitude=float(regionlat) if len(regionlat) > 0 else None,
-                longitude=float(regionlng) if len(regionlng) > 0 else None,
+    if region and region not in regions:
+        stix_region = Location(
+            id=f'location--{id_region}',
+            name=region,
+            region=region,
+            latitude=float(regionlat) if len(regionlat) > 0 else None,
+            longitude=float(regionlng) if len(regionlng) > 0 else None,
+            created_by_ref=anssi,
+            object_marking_refs=[TLP_WHITE],
+            custom_properties={'x_opencti_location_type': 'Region'},
+        )
+
+        regions[region] = stix_region
+        bundle_objects.append(stix_region)
+    if subregion and subregion not in subregions:
+        stix_subregion = Location(
+            id=f'location--{id_subregion}',
+            name=subregion,
+            region=subregion,
+            latitude=float(subregionlat) if len(subregionlat) > 0 else None,
+            longitude=float(subregionlng) if len(subregionlng) > 0 else None,
+            created_by_ref=anssi,
+            object_marking_refs=[TLP_WHITE],
+            custom_properties={'x_opencti_location_type': 'Region'},
+        )
+
+        bundle_objects.append(stix_subregion)
+        subregions[subregion] = stix_subregion
+        if region:
+            stix_subregion_relationship = Relationship(
+                relationship_type='located-at',
+                source_ref=stix_subregion.id,
+                target_ref=regions[region].id,
+                description=f'Region {stix_subregion.name} is located in {regions[region].name}',
+                confidence=100,
                 created_by_ref=anssi,
                 object_marking_refs=[TLP_WHITE],
-                custom_properties={
-                    'x_opencti_location_type': 'Region'
-                }
             )
-            regions[region] = stix_region
-            bundle_objects.append(stix_region)
-    if subregion:
-        if subregion not in subregions:
-            stix_subregion = Location(
-                id='location--' + id_subregion,
-                name=subregion,
-                region=subregion,
-                latitude=float(subregionlat) if len(subregionlat) > 0 else None,
-                longitude=float(subregionlng) if len(subregionlng) > 0 else None,
-                created_by_ref=anssi,
-                object_marking_refs=[TLP_WHITE],
-                custom_properties={
-                    'x_opencti_location_type': 'Region'
-                }
-            )
-            bundle_objects.append(stix_subregion)
-            subregions[subregion] = stix_subregion
-            if region:
-                stix_subregion_relationship = Relationship(
-                    relationship_type='located-at',
-                    source_ref=stix_subregion.id,
-                    target_ref=regions[region].id,
-                    description='Region ' + stix_subregion.name + ' is located in ' + regions[region].name,
-                    confidence=100,
-                    created_by_ref=anssi,
-                    object_marking_refs=[TLP_WHITE],
-                )
-                bundle_objects.append(stix_subregion_relationship)
+
+            bundle_objects.append(stix_subregion_relationship)
     stix_country = Location(
-        id='location--' + id_country,
+        id=f'location--{id_country}',
         name=country,
         country=country_code,
         latitude=float(country_lat) if len(country_lat) > 0 else None,
@@ -92,35 +89,37 @@ for row in geography:
         object_marking_refs=[TLP_WHITE],
         custom_properties={
             'x_opencti_location_type': 'Country',
-            'x_opencti_aliases': [country_code, country_code2]
-        }
+            'x_opencti_aliases': [country_code, country_code2],
+        },
     )
+
     bundle_objects.append(stix_country)
-    if region and subregion:
-        stix_country_relationship = Relationship(
-            relationship_type='located-at',
-            source_ref=stix_country.id,
-            target_ref=subregions[subregion].id,
-            description='Country ' + stix_country.name + ' is located in ' + subregions[subregion].name,
-            confidence=100,
-            object_marking_refs=[TLP_WHITE],
-            created_by_ref=anssi,
-        )
-        bundle_objects.append(stix_country_relationship)
-    elif region:
-        stix_country_relationship = Relationship(
-            relationship_type='located-at',
-            source_ref=stix_country.id,
-            target_ref=regions[region].id,
-            description='Country ' + stix_country.name + ' is located in ' + regions[region].name,
-            confidence=100,
-            object_marking_refs=[TLP_WHITE],
-            created_by_ref=anssi,
-        )
+    if region:
+        if subregion:
+            stix_country_relationship = Relationship(
+                relationship_type='located-at',
+                source_ref=stix_country.id,
+                target_ref=subregions[subregion].id,
+                description=f'Country {stix_country.name} is located in {subregions[subregion].name}',
+                confidence=100,
+                object_marking_refs=[TLP_WHITE],
+                created_by_ref=anssi,
+            )
+
+        else:
+            stix_country_relationship = Relationship(
+                relationship_type='located-at',
+                source_ref=stix_country.id,
+                target_ref=regions[region].id,
+                description=f'Country {stix_country.name} is located in {regions[region].name}',
+                confidence=100,
+                object_marking_refs=[TLP_WHITE],
+                created_by_ref=anssi,
+            )
+
         bundle_objects.append(stix_country_relationship)
     i += 1
 
 bundle = Bundle(objects=bundle_objects)
-fh = open('../data/geography.json', 'w')
-fh.write(str(bundle))
-fh.close()
+with open('../data/geography.json', 'w') as fh:
+    fh.write(str(bundle))

@@ -50,14 +50,14 @@ for sector in sectors:
                 relationship_type='part-of',
                 source_ref=stix_subsector.id,
                 target_ref=stix_sector.id,
-                description='Sector ' + stix_subsector.name + ' is a subsector of ' + stix_sector.name,
+                description=f'Sector {stix_subsector.name} is a subsector of {stix_sector.name}',
                 created_by_ref=anssi,
                 object_marking_refs=[TLP_WHITE],
                 confidence=100,
             )
+
             bundle_objects.append(stix_subsector_relationship)
 
 bundle = Bundle(objects=bundle_objects)
-fh = open('../data/sectors.json', 'w')
-fh.write(str(bundle))
-fh.close()
+with open('../data/sectors.json', 'w') as fh:
+    fh.write(str(bundle))
